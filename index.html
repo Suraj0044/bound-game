@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>BOUND</title>
+
+<style>
+
+body{
+font-family:Arial;
+text-align:center;
+}
+
+.grid{
+display:grid;
+grid-template-columns:repeat(5,60px);
+gap:5px;
+justify-content:center;
+margin-top:20px;
+}
+
+.cell{
+width:60px;
+height:60px;
+border:2px solid black;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:20px;
+cursor:pointer;
+transition:0.2s;
+}
+
+.marked{
+background:rgba(0,0,0,0.3);
+}
+
+.line{
+background:limegreen !important;
+color:white;
+}
+
+#game{
+display:none;
+}
+
+button{
+padding:10px;
+margin:5px;
+cursor:pointer;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>BOUND</h1>
+
+<div id="lobby">
+
+<input id="playerName" placeholder="Enter your name"><br><br>
+
+<button onclick="createRoom()">Create Room</button><br><br>
+
+<input id="roomCode" placeholder="Enter room code">
+
+<button onclick="joinRoom()">Join Room</button>
+
+<p id="roomDisplay"></p>
+
+</div>
+
+
+<div id="game">
+
+<h3>Your Grid</h3>
+
+<h3 id="turnText"></h3>
+
+<h3>Score: <span id="score">0</span></h3>
+
+<div class="grid" id="grid"></div>
+
+</div>
+
+
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+
+let socket = io();
+
+let roomCode="";
+let myTurn=false;
+let myId="";
+let score=0;
+
+let completedLines=new Set();
+
+let numbers=[...Array(25).keys()].map(x=>x+1);
+
+numbers.sort(()=>Math.random()-0.5);
+
+let grid=document.getElementById("grid");
+
+let cells=[];
+
+socket.on("connect",()=>{
+myId=socket.id;
+});
+
+numbers.forEach((num,index)=>{
+
+let cell=document.createElement("div");
+
+cell.classList.add("cell");
+
+cell.innerText=num;
+
+cell.dataset.index=index;
+
+cell.onclick=()=>{
+
+if(!myTurn) return;
+
+socket.emit("callNumber",{
+roomCode:roomCode,
+number:num
+});
+
+};
+
+grid.appendChild(cell);
+
+cells.push(cell);
+
+});
+
+
+function createRoom(){
+
+socket.emit("createRoom");
+
+socket.on("roomCreated",(code)=>{
+
+roomCode=code;
+
+document.getElementById("roomDisplay").innerText="Room Code: "+code;
+
+});
+
+}
+
+
+function joinRoom(){
+
+let code=document.getElementById("roomCode").value;
+
+roomCode=code;
+
+socket.emit("joinRoom",code);
+
+}
+
+
+socket.on("startGame",()=>{
+
+document.getElementById("lobby").style.display="none";
+
+document.getElementById("game").style.display="block";
+
+});
+
+
+socket.on("numberCalled",(number)=>{
+
+cells.forEach(cell=>{
+
+if(cell.innerText==number){
+
+cell.classList.add("marked");
+
+}
+
+});
+
+checkLines();
+
+});
+
+
+socket.on("turnChange",(playerId)=>{
+
+if(playerId===myId){
+
+myTurn=true;
+
+document.getElementById("turnText").innerText="Your Turn";
+
+}else{
+
+myTurn=false;
+
+document.getElementById("turnText").innerText="Opponent Turn";
+
+}
+
+});
+
+
+socket.on("gameOver",()=>{
+
+alert("🏆 Game Over!");
+
+location.reload();
+
+});
+
+
+function checkLines(){
+
+let gridArray=[];
+
+for(let i=0;i<25;i++){
+gridArray[i]=cells[i].classList.contains("marked");
+}
+
+let lines=[
+
+[0,1,2,3,4],
+[5,6,7,8,9],
+[10,11,12,13,14],
+[15,16,17,18,19],
+[20,21,22,23,24],
+
+[0,5,10,15,20],
+[1,6,11,16,21],
+[2,7,12,17,22],
+[3,8,13,18,23],
+[4,9,14,19,24],
+
+[0,6,12,18,24],
+[4,8,12,16,20]
+
+];
+
+lines.forEach((line,index)=>{
+
+if(line.every(i=>gridArray[i]) && !completedLines.has(index)){
+
+completedLines.add(index);
+
+line.forEach(i=>cells[i].classList.add("line"));
+
+score++;
+
+document.getElementById("score").innerText=score;
+
+if(score>=5){
+socket.emit("gameWin",roomCode);
+}
+
+}
+
+});
+
+}
+
+</script>
+
+</body>
+
+</html>
