@@ -33,21 +33,23 @@ socket.emit("roomCreated",roomCode);
 
 socket.on("joinRoom",(roomCode)=>{
 
-if(rooms[roomCode] && rooms[roomCode].players.length < 2){
+let room = rooms[roomCode];
 
-rooms[roomCode].players.push(socket.id);
+if(room && room.players.length < 2){
+
+room.players.push(socket.id);
 
 socket.join(roomCode);
 
 io.to(roomCode).emit("startGame");
 
-io.to(roomCode).emit("turnChange",rooms[roomCode].players[0]);
+io.to(roomCode).emit("turnChange",room.players[0]);
 
 }
 
 });
 
-socket.on("callNumber",({roomCode,number})=>{
+socket.on("callNumber",(roomCode,number)=>{
 
 let room = rooms[roomCode];
 
@@ -77,16 +79,36 @@ let room = rooms[roomCode];
 
 if(!room) return;
 
-room.gameOver=true;
+room.gameOver = true;
 
 io.to(roomCode).emit("gameOver");
 
 });
 
+socket.on("disconnect",()=>{
+
+for(let code in rooms){
+
+let room = rooms[code];
+
+if(room.players.includes(socket.id)){
+
+io.to(code).emit("gameOver");
+
+delete rooms[code];
+
+}
+
+}
+
 });
 
-server.listen(3000,()=>{
+});
 
-console.log("Server running on port 3000");
+const PORT = process.env.PORT || 3000;
+
+server.listen(PORT,()=>{
+
+console.log("Server running on port " + PORT);
 
 });
