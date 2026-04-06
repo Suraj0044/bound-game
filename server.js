@@ -10,88 +10,85 @@ app.use(express.static(__dirname));
 
 let rooms = {};
 
-io.on("connection", (socket) => {
+io.on("connection",(socket)=>{
 
-    console.log("Player connected");
+console.log("Player connected");
 
-    socket.on("createRoom", () => {
+socket.on("createRoom",()=>{
 
-        let roomCode = Math.random().toString(36).substring(2,6).toUpperCase();
+let roomCode=Math.random().toString(36).substring(2,6).toUpperCase();
 
-        rooms[roomCode] = {
-            players:[socket.id],
-            called:[],
-            turn:0,
-            gameOver:false
-        };
+rooms[roomCode]={
+players:[socket.id],
+called:[],
+turn:0,
+gameOver:false
+};
 
-        socket.join(roomCode);
+socket.join(roomCode);
 
-        socket.emit("roomCreated", roomCode);
-
-    });
-
-    socket.on("joinRoom",(roomCode)=>{
-
-        let room = rooms[roomCode];
-
-        if(room && room.players.length < 2){
-
-            room.players.push(socket.id);
-
-            socket.join(roomCode);
-
-            io.to(roomCode).emit("startGame");
-
-            io.to(roomCode).emit("turnChange", room.players[0]);
-
-        }
-
-    });
-
-    socket.on("callNumber",(roomCode,number)=>{
-
-        let room = rooms[roomCode];
-
-        if(!room || room.gameOver) return;
-
-        let currentPlayer = room.players[room.turn];
-
-        if(socket.id !== currentPlayer) return;
-
-        if(!room.called.includes(number)){
-
-            room.called.push(number);
-
-            io.to(roomCode).emit("numberCalled",number);
-
-            room.turn = (room.turn + 1) % 2;
-
-            io.to(roomCode).emit("turnChange",room.players[room.turn]);
-
-        }
-
-    });
-
-    socket.on("gameWin",(roomCode)=>{
-
-        let room = rooms[roomCode];
-
-        if(!room) return;
-
-        room.gameOver = true;
-
-        io.to(roomCode).emit("gameOver");
-
-    });
+socket.emit("roomCreated",roomCode);
 
 });
 
+socket.on("joinRoom",(roomCode)=>{
 
-const PORT = process.env.PORT || 3000;
+let room=rooms[roomCode];
 
-server.listen(PORT, () => {
+if(room && room.players.length<2){
 
-    console.log("Server running on port " + PORT);
+room.players.push(socket.id);
 
+socket.join(roomCode);
+
+io.to(roomCode).emit("startGame");
+
+io.to(roomCode).emit("turnChange",room.players[0]);
+
+}
+
+});
+
+socket.on("callNumber",(roomCode,number)=>{
+
+let room=rooms[roomCode];
+
+if(!room || room.gameOver) return;
+
+let currentPlayer=room.players[room.turn];
+
+if(socket.id!==currentPlayer) return;
+
+if(!room.called.includes(number)){
+
+room.called.push(number);
+
+io.to(roomCode).emit("numberCalled",number);
+
+room.turn=(room.turn+1)%2;
+
+io.to(roomCode).emit("turnChange",room.players[room.turn]);
+
+}
+
+});
+
+socket.on("gameWin",(roomCode)=>{
+
+let room=rooms[roomCode];
+
+if(!room) return;
+
+room.gameOver=true;
+
+io.to(roomCode).emit("gameOver");
+
+});
+
+});
+
+const PORT=process.env.PORT||3000;
+
+server.listen(PORT,()=>{
+console.log("Server running on port "+PORT);
 });

@@ -2,7 +2,6 @@
 <html>
 
 <head>
-
 <title>BOUND</title>
 
 <style>
@@ -52,7 +51,6 @@ cursor:pointer;
 }
 
 </style>
-
 </head>
 
 <body>
@@ -101,11 +99,9 @@ let score=0;
 let completedLines=new Set();
 
 let numbers=[...Array(25).keys()].map(x=>x+1);
-
 numbers.sort(()=>Math.random()-0.5);
 
 let grid=document.getElementById("grid");
-
 let cells=[];
 
 socket.on("connect",()=>{
@@ -115,26 +111,19 @@ myId=socket.id;
 numbers.forEach((num,index)=>{
 
 let cell=document.createElement("div");
-
 cell.classList.add("cell");
-
 cell.innerText=num;
-
 cell.dataset.index=index;
 
 cell.onclick=()=>{
 
 if(!myTurn) return;
 
-socket.emit("callNumber",{
-roomCode:roomCode,
-number:num
-});
+socket.emit("callNumber",roomCode,num);
 
 };
 
 grid.appendChild(cell);
-
 cells.push(cell);
 
 });
@@ -169,7 +158,6 @@ socket.emit("joinRoom",code);
 socket.on("startGame",()=>{
 
 document.getElementById("lobby").style.display="none";
-
 document.getElementById("game").style.display="block";
 
 });
@@ -180,9 +168,7 @@ socket.on("numberCalled",(number)=>{
 cells.forEach(cell=>{
 
 if(cell.innerText==number){
-
 cell.classList.add("marked");
-
 }
 
 });
@@ -195,17 +181,11 @@ checkLines();
 socket.on("turnChange",(playerId)=>{
 
 if(playerId===myId){
-
 myTurn=true;
-
 document.getElementById("turnText").innerText="Your Turn";
-
 }else{
-
 myTurn=false;
-
 document.getElementById("turnText").innerText="Opponent Turn";
-
 }
 
 });
@@ -214,7 +194,6 @@ document.getElementById("turnText").innerText="Opponent Turn";
 socket.on("gameOver",()=>{
 
 alert("🏆 Game Over!");
-
 location.reload();
 
 });
@@ -272,5 +251,4 @@ socket.emit("gameWin",roomCode);
 </script>
 
 </body>
-
 </html>
